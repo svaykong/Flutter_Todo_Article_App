@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../widgets/logout_alert_dialog.dart';
+import '../widgets/export_widget.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});

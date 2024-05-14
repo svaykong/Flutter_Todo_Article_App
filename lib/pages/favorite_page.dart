@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:provider/provider.dart';
 
-import '../widgets/remove_all_favorite_article_alert_dialog.dart';
+import '../widgets/export_widget.dart';
 import '../models/article_model.dart';
 import '../providers/export_provider.dart';
 
@@ -65,7 +65,9 @@ class _FavoritePageState extends State<FavoritePage> {
         actions: [
           IconButton(
             onPressed: () async {
-              await _showRemoveAllFavoriteAlertDialog(context);
+              if (_favorites.isNotEmpty) {
+                await _showRemoveAllFavoriteAlertDialog(context);
+              }
             },
             icon: Icon(
               Icons.delete_rounded,

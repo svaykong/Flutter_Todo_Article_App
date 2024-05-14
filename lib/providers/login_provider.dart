@@ -22,6 +22,7 @@ class LoginProvider extends ChangeNotifier {
 
   Future<void> onLogin({required String email, required String password}) async {
     try {
+      _loginResModel = null;
       _errorMsg = '';
       _isLoading = true;
       notifyListeners();
@@ -30,6 +31,7 @@ class LoginProvider extends ChangeNotifier {
 
       await Future.delayed(Duration(milliseconds: 5000), () {});
       _loginResModel = await authenticationService.signin(loginReqModel);
+      'login response model:: [$_loginResModel]'.log();
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('token', _loginResModel?.token ?? '');

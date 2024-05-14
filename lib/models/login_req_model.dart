@@ -1,4 +1,6 @@
-class LoginReqModel {
+import 'package:equatable/equatable.dart';
+
+class LoginReqModel extends Equatable {
   const LoginReqModel({
     required this.email,
     required this.password,
@@ -13,4 +15,7 @@ class LoginReqModel {
     data['password'] = password;
     return data;
   }
+
+  @override
+  List<Object?> get props => [email, password];
 }

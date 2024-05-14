@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:provider/provider.dart';
 
 import '../article/update_article_argument.dart';
@@ -31,7 +32,6 @@ class _UpdateArticlePageState extends State<UpdateArticlePage> {
     super.initState();
 
     _articleProvider = context.read<ArticleProvider>();
-    _articleProvider.addListener(onArticleChange);
 
     _titleFocusNode = FocusNode();
     _descFocusNode = FocusNode();
@@ -53,30 +53,41 @@ class _UpdateArticlePageState extends State<UpdateArticlePage> {
   void dispose() {
     _titleCtr.dispose();
     _descCtr.dispose();
-    _articleProvider.removeListener(onArticleChange);
     super.dispose();
   }
 
-  void onArticleChange() async {
-    '[Update Article Page] on article change::'.log();
+  Future<void> onUpdate(BuildContext context) async {
+    if (_updateFormKey.currentState!.validate()) {
+      var postData = Article.toMap(_titleCtr.text, _descCtr.text);
 
-    if (_articleProvider.errorMsg.isNotEmpty) {
-      return;
-    } else if (_articleProvider.isLoading) {
       setState(() {
         _showLoading = true;
       });
-    } else {
-      setState(() {
-        _showLoading = false;
-      });
-    }
-  }
 
-  Future<void> onUpdate() async {
-    if (_updateFormKey.currentState!.validate()) {
-      var postData = Article.toMap(_titleCtr.text, _descCtr.text);
-      await _articleProvider.onUpdateArticle(_updateArticle!.id, postData).then((_) => Navigator.of(context).pop(true));
+      try {
+        await _articleProvider.onUpdateArticle(_updateArticle!.id, postData);
+
+        setState(() {
+          _showLoading = false;
+        });
+
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Update article successfully...'),
+          ),
+        );
+
+        if (!context.mounted) return;
+        Navigator.of(context).pop(true);
+      } catch (e) {
+        'onUpdate exception:: [$e]'.log();
+
+        // un-expect error set _showLoading to false
+        setState(() {
+          _showLoading = false;
+        });
+      }
     }
   }
 
@@ -87,82 +98,83 @@ class _UpdateArticlePageState extends State<UpdateArticlePage> {
         title: Text('Update Article'),
       ),
       body: SafeArea(
-        child: _showLoading
-            ? Center(child: CircularProgressIndicator())
-            : Form(
-                key: _updateFormKey,
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
-                      child: TextFormField(
-                        autofocus: false,
-                        autocorrect: false,
-                        onTapOutside: (event) {
-                          if (_titleFocusNode.hasFocus) {
-                            _titleFocusNode.unfocus();
-                          }
-                        },
-                        focusNode: _titleFocusNode,
-                        controller: _titleCtr,
-                        autovalidateMode: AutovalidateMode.onUserInteraction,
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: 'Input title',
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'title is required';
-                          }
-                          return null;
-                        },
-                        textInputAction: TextInputAction.next,
-                      ),
+        child: ModalProgressHUD(
+          inAsyncCall: _showLoading,
+          child: Form(
+            key: _updateFormKey,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+                  child: TextFormField(
+                    autofocus: false,
+                    autocorrect: false,
+                    onTapOutside: (event) {
+                      if (_titleFocusNode.hasFocus) {
+                        _titleFocusNode.unfocus();
+                      }
+                    },
+                    focusNode: _titleFocusNode,
+                    controller: _titleCtr,
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: 'Input title',
                     ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
-                      child: TextFormField(
-                        autofocus: false,
-                        autocorrect: false,
-                        autovalidateMode: AutovalidateMode.onUserInteraction,
-                        onTapOutside: (event) {
-                          if (_descFocusNode.hasFocus) {
-                            _descFocusNode.unfocus();
-                          }
-                        },
-                        onFieldSubmitted: (event) async {
-                          await onUpdate();
-                        },
-                        focusNode: _descFocusNode,
-                        controller: _descCtr,
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: 'Input description',
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'description is required';
-                          }
-                          return null;
-                        },
-                        textInputAction: TextInputAction.done,
-                      ),
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.deepPurple,
-                      ),
-                      onPressed: () async => await onUpdate(),
-                      child: Text(
-                        'Update',
-                        style: TextStyle(
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'title is required';
+                      }
+                      return null;
+                    },
+                    textInputAction: TextInputAction.next,
+                  ),
                 ),
-              ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+                  child: TextFormField(
+                    autofocus: false,
+                    autocorrect: false,
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                    onTapOutside: (event) {
+                      if (_descFocusNode.hasFocus) {
+                        _descFocusNode.unfocus();
+                      }
+                    },
+                    onFieldSubmitted: (event) async {
+                      await onUpdate(context);
+                    },
+                    focusNode: _descFocusNode,
+                    controller: _descCtr,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: 'Input description',
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'description is required';
+                      }
+                      return null;
+                    },
+                    textInputAction: TextInputAction.done,
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepPurple,
+                  ),
+                  onPressed: () async => await onUpdate(context),
+                  child: Text(
+                    'Update',
+                    style: TextStyle(
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

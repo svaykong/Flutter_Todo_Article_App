@@ -6,20 +6,22 @@ import 'pages/export_page.dart';
 import 'providers/export_provider.dart';
 
 void main() {
-  runApp(MultiProvider(
-    providers: [
-      ChangeNotifierProvider<AuthenticationProvider>(
-        create: (context) => AuthenticationProvider(),
-      ),
-      ChangeNotifierProvider<LoginProvider>(
-        create: (context) => LoginProvider(),
-      ),
-      ChangeNotifierProvider<ArticleProvider>(
-        create: (context) => ArticleProvider(),
-      ),
-    ],
-    child: RootApp(),
-  ));
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider<AuthenticationProvider>(
+          create: (context) => AuthenticationProvider(),
+        ),
+        ChangeNotifierProvider<LoginProvider>(
+          create: (context) => LoginProvider(),
+        ),
+        ChangeNotifierProvider<ArticleProvider>(
+          create: (context) => ArticleProvider(),
+        ),
+      ],
+      child: RootApp(),
+    ),
+  );
 }
 
 class RootApp extends StatelessWidget {

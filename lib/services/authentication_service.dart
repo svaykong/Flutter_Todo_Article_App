@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
 import '../utils/logger.dart';
+import '../utils/app_exception.dart';
 import '../constants/constants.dart';
 import '../models/login_req_model.dart';
 import '../models/login_res_model.dart';
@@ -19,6 +21,9 @@ class AuthenticationService {
       } else {
         throw 'Invalid credentials';
       }
+    } on SocketException {
+      // handle no internet connection
+      throw NoInternetException('No internet connected. Please check your internet again.');
     } catch (e) {
       'sign-in exception::${e.toString()}'.log();
       throw 'Something went wrong::[$e]';

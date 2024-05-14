@@ -62,9 +62,6 @@ class ArticleService {
     try {
       var token = await getToken();
 
-      // making token expired
-      // token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZXhwIjoxNzE1NDEwNzUwfQ.l15MFMqxzdk_RRDDSBnn1JL4adTTfXqGCoZTeRlpJrs';
-
       var header = {'Authorization': token.toString(), 'Content-Type': 'application/json'};
 
       final response = await http.put(Uri.parse('$baseUrl/articles/$articleId'), headers: header, body: json.encode(postData));

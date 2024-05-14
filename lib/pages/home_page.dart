@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'article/update_article_argument.dart';
-import '../widgets/delete_article_alert_dialog.dart';
+import '../widgets/export_widget.dart';
 import '../providers/export_provider.dart';
 import 'export_page.dart';
 import '../utils/logger.dart';
