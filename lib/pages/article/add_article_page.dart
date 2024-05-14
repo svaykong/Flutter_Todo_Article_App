@@ -1,0 +1,155 @@
+import 'package:flutter/material.dart';
+
+import 'package:provider/provider.dart';
+
+import '../../utils/logger.dart';
+import '../../providers/export_provider.dart';
+import '../../models/article_model.dart';
+
+class AddArticlePage extends StatefulWidget {
+  const AddArticlePage({super.key});
+
+  static const routeId = '/add-article-page';
+
+  @override
+  State<AddArticlePage> createState() => _AddArticlePageState();
+}
+
+class _AddArticlePageState extends State<AddArticlePage> {
+  bool _showLoading = false;
+  final GlobalKey<FormState> _createFormKey = GlobalKey<FormState>();
+  late final TextEditingController _titleCtr;
+  late final TextEditingController _descCtr;
+  late final FocusNode _titleFocusNode;
+  late final FocusNode _descFocusNode;
+  late final ArticleProvider _articleProvider;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleCtr = TextEditingController();
+    _descCtr = TextEditingController();
+    _titleFocusNode = FocusNode();
+    _descFocusNode = FocusNode();
+    _articleProvider = context.read<ArticleProvider>();
+    _articleProvider.addListener(onArticleChange);
+  }
+
+  @override
+  void dispose() {
+    _titleCtr.dispose();
+    _descCtr.dispose();
+    _articleProvider.removeListener(onArticleChange);
+    super.dispose();
+  }
+
+  void onArticleChange() async {
+    '[Add Article Page] on article change::'.log();
+
+    if (_articleProvider.errorMsg.isNotEmpty) {
+      return;
+    } else if (_articleProvider.isLoading) {
+      setState(() {
+        _showLoading = true;
+      });
+    } else {
+      setState(() {
+        _showLoading = false;
+      });
+    }
+  }
+
+  Future<void> onCreate() async {
+    if (_createFormKey.currentState!.validate()) {
+      var postData = Article.toMap(_titleCtr.text, _descCtr.text);
+      await _articleProvider.onCreateArticle(postData).then((_) => Navigator.of(context).pop(true));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Create Article'),
+      ),
+      body: SafeArea(
+        child: _showLoading
+            ? Center(child: CircularProgressIndicator())
+            : Form(
+                key: _createFormKey,
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+                      child: TextFormField(
+                        autofocus: false,
+                        autocorrect: false,
+                        onTapOutside: (event) {
+                          if (_titleFocusNode.hasFocus) {
+                            _titleFocusNode.unfocus();
+                          }
+                        },
+                        focusNode: _titleFocusNode,
+                        controller: _titleCtr,
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: 'Input title',
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'title is required';
+                          }
+                          return null;
+                        },
+                        textInputAction: TextInputAction.next,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+                      child: TextFormField(
+                        autofocus: false,
+                        autocorrect: false,
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
+                        onTapOutside: (event) {
+                          if (_descFocusNode.hasFocus) {
+                            _descFocusNode.unfocus();
+                          }
+                        },
+                        onFieldSubmitted: (event) async {
+                          await onCreate();
+                        },
+                        focusNode: _descFocusNode,
+                        controller: _descCtr,
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: 'Input description',
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'description is required';
+                          }
+                          return null;
+                        },
+                        textInputAction: TextInputAction.done,
+                      ),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.deepPurple,
+                      ),
+                      onPressed: () async => await onCreate(),
+                      child: Text(
+                        'Create',
+                        style: TextStyle(
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+      ),
+    );
+  }
+}
