@@ -1,13 +1,15 @@
 import 'dart:convert';
 
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants/constants.dart';
 import '../models/article_model.dart';
 import '../utils/logger.dart';
+import '../data/network/network_api_service.dart';
 
 class ArticleService {
+  final NetworkApiService _apiService = NetworkApiService.getInstance;
+
   Future<String> getToken() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     var token = prefs.get('token') ?? '';
@@ -21,37 +23,21 @@ class ArticleService {
     var header = {'Authorization': token.toString()};
 
     try {
-      final response = await http.get(Uri.parse('$baseUrl/articles'), headers: header);
-      if (response.statusCode == 200) {
-        final jsonStr = json.decode(response.body);
-
-        return ListArticles.fromJson(jsonStr).articles;
-      } else {
-        'status code:: ${response.statusCode}'.log();
-        'response:: ${response.body}'.log();
-        throw 'Something went wrong: ${response.body}';
-      }
+      final jsonStr = await _apiService.getRequest(url: '$baseUrl/articles', header: header);
+      return ListArticles.fromJson(jsonStr).articles;
     } catch (e) {
       'getAllArticles exception::$e'.log();
       throw 'Failed to fetch all articles. $e';
     }
   }
 
-  Future<void> createArticle(Map<String, String> postData) async {
+  Future<void> createArticle(Map<String, dynamic> postData) async {
     try {
       var token = await getToken();
       var header = {'Authorization': token.toString(), 'Content-Type': 'application/json'};
 
-      final response = await http.post(Uri.parse('$baseUrl/articles'), headers: header, body: json.encode(postData));
-      'response status code:: [${response.statusCode}]'.log();
-      'response body:: [${response.body}]'.log();
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        'create article successfully'.log();
-        return;
-      } else {
-        throw 'Something went wrong: ${response.body}';
-      }
+      await _apiService.postRequest(url: '$baseUrl/articles', header: header, postData: json.encode(postData));
+      'create article successfully'.log();
     } catch (e) {
       'create article exception::$e'.log();
       throw 'Failed to create article. $e';
@@ -64,16 +50,8 @@ class ArticleService {
 
       var header = {'Authorization': token.toString(), 'Content-Type': 'application/json'};
 
-      final response = await http.put(Uri.parse('$baseUrl/articles/$articleId'), headers: header, body: json.encode(postData));
-      'response status code:: [${response.statusCode}]'.log();
-      'response body:: [${response.body}]'.log();
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        'update article successfully'.log();
-        return;
-      } else {
-        throw 'Something went wrong: ${response.body}';
-      }
+      await _apiService.putRequest(url: '$baseUrl/articles', id: articleId, header: header, postData: json.encode(postData));
+      'update article successfully'.log();
     } catch (e) {
       'update article exception::$e'.log();
       throw 'Failed to update article. $e';
@@ -85,15 +63,9 @@ class ArticleService {
     var header = {'Authorization': token.toString()};
 
     try {
-      final response = await http.delete(Uri.parse('$baseUrl/articles/$articleId'), headers: header);
-      if (response.statusCode == 200 || response.statusCode == 202) {
-        'article delete successfully'.log();
-        return;
-      } else {
-        'status code:: ${response.statusCode}'.log();
-        'response:: ${response.body}'.log();
-        throw 'Something went wrong: ${response.body}';
-      }
+      await _apiService.deleteRequest(url: '$baseUrl/articles', id: articleId, header: header);
+
+      'article delete successfully'.log();
     } catch (e) {
       'deleteArticle exception::$e'.log();
       throw 'Failed to delete article. $e';
