@@ -21,7 +21,7 @@ class AuthenticationService {
       } else {
         throw 'Invalid credentials';
       }
-    } on SocketException {
+    } on SocketException catch (e) {
       // handle no internet connection
       throw NoInternetException('No internet connected. Please check your internet again.');
     } catch (e) {

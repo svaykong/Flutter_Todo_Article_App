@@ -20,6 +20,9 @@ class ArticleService {
   Future<List<Article>> getAllArticles() async {
     var token = await getToken();
 
+    // make token expired
+    // token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZXhwIjoxNzE1NDI1MTkxfQ.dNrU0KNrLmu6L_0dXtQU80l8cMkI78dSchHaOno29Ls';
+
     var header = {'Authorization': token.toString()};
 
     try {

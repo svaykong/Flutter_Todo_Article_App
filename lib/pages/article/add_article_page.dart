@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 
-import '../../utils/logger.dart';
 import '../../providers/export_provider.dart';
 import '../../models/article_model.dart';
 
@@ -50,30 +49,28 @@ class _AddArticlePageState extends State<AddArticlePage> {
         _showLoading = true;
       });
 
-      try {
-        await _articleProvider.onCreateArticle(postData);
+      await _articleProvider.onCreateArticle(postData);
+      setState(() {
+        _showLoading = false;
+      });
 
-        setState(() {
-          _showLoading = false;
-        });
-
-        if (!context.mounted) return;
+      if (!context.mounted) return;
+      if (_articleProvider.errorMsg.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Create article successfully...'),
+            content: Text('Create article failed...'),
           ),
         );
-
-        if (!context.mounted) return;
-        Navigator.of(context).pop(true);
-      } catch (e) {
-        'onCreate exception:: [$e]'.log();
-
-        // un-expect error set _showLoading to false
-        setState(() {
-          _showLoading = false;
-        });
+        return;
       }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Create article successfully...'),
+        ),
+      );
+
+      Navigator.of(context).pop(true);
     }
   }
 

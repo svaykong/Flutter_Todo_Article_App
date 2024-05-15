@@ -23,13 +23,16 @@ class _HomePageState extends State<HomePage> {
   List<Article> _article = [];
 
   bool _showLoading = false;
+  String _errorMsg = '';
 
   @override
   void initState() {
     super.initState();
+
+    _articleProvider = context.read<ArticleProvider>();
+    _articleProvider.addListener(onArticleChange);
+
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-      _articleProvider = context.read<ArticleProvider>();
-      _articleProvider.addListener(onArticleChange);
       _articleProvider.onGetAllArticles();
 
       // getting list favorite articles
@@ -46,12 +49,17 @@ class _HomePageState extends State<HomePage> {
   void onArticleChange() async {
     '[Home Page] on article change::'.log();
 
-    setState(() {
-      _showLoading = _articleProvider.isLoading;
-    });
+    if (context.mounted) {
+      setState(() {
+        _showLoading = _articleProvider.isLoading;
+        _errorMsg = _articleProvider.errorMsg;
+      });
+    }
 
-    if (_articleProvider.errorMsg.isNotEmpty) {
-      if (_articleProvider.errorMsg.contains('Token is invalid')) {
+    if (_errorMsg.isNotEmpty) {
+      'errorMsg::[$_errorMsg]'.log();
+
+      if (_errorMsg.contains('Token is invalid')) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Your session is end. Please login again.'),
@@ -60,12 +68,15 @@ class _HomePageState extends State<HomePage> {
 
         // clear data
         await context.read<AuthenticationProvider>().clearData();
-      } else {
+      } else if (_errorMsg.contains('Connection refused')) {
+        // handle Connection refused
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('An error occurred. ${_articleProvider.errorMsg}'),
+            content: Text('Server has problem. Please try again later'),
           ),
         );
+      } else {
+        'An error occurred. $_errorMsg'.log();
       }
     } else {
       setState(() {
@@ -74,12 +85,13 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> onRefresh({bool onRefreshCall = false}) async {
+  Future<void> onRefresh({bool onRefreshCall = false, required BuildContext context}) async {
     'onRefresh call...'.log();
 
-    if (_articleProvider.errorMsg.isNotEmpty) {
-      return;
-    }
+    // close for awhile
+    // if (_errorMsg.isNotEmpty) {
+    //   return;
+    // }
 
     if (onRefreshCall) {
       await _articleProvider.onGetAllArticles();
@@ -99,35 +111,75 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> onEdit(Article currentArticle) async {
+  Future<void> onEdit(Article currentArticle, BuildContext context) async {
     Navigator.of(context).pushNamed(UpdateArticlePage.routeId, arguments: UpdateArticleArgument(article: currentArticle)).then((value) async {
       if (value == true) {
-        await onRefresh();
+        await onRefresh(context: context);
       }
     });
   }
 
-  Future<void> onDelete(int articleId) async {
+  Future<void> onDelete(int articleId, BuildContext context) async {
     // show alert dialog delete article
-    await showDialog(
+    final String? result = await showDialog(
         context: context,
         builder: (context) {
-          return DeleteArticleAlertDialog(
-              articleId: articleId,
-              callback: (value) async {
-                if (value != null) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('There was an error:: [$value]')));
-                } else {
-                  // call refresh function again
-                  await onRefresh();
-                }
-              });
+          return DeleteArticleAlertDialog();
         });
+
+    'result:: $result'.log();
+    if (result == 'Yes') {
+      await _articleProvider.onDeleteArticle(articleId);
+
+      'check mounted:: [${context.mounted}]'.log();
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('delete article successfully...'),
+        ),
+      );
+
+      // call refresh function again
+      await onRefresh(context: context);
+    }
   }
 
   Future<void> onToggleFavorite(Article article) async {
     await _articleProvider.onToggleFavoriteArticle(article);
     _articleProvider.filterFavorite();
+  }
+
+  Widget get _handleServerIssue {
+    return Container(
+      alignment: Alignment.center,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              'We\'re sorry our app has problem,\nplease try again later.',
+              style: TextStyle(
+                fontSize: 24.0,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.deepPurple,
+            ),
+            onPressed: () async {
+              await onRefresh(context: context);
+            },
+            child: Text(
+              'Refresh',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -137,18 +189,22 @@ class _HomePageState extends State<HomePage> {
         title: Text('Article App'),
         actions: [
           IconButton(
-            onPressed: () {
-              Navigator.of(context).pushNamed(FavoritePage.routeId);
-            },
+            onPressed: _errorMsg.isNotEmpty
+                ? null
+                : () {
+                    Navigator.of(context).pushNamed(FavoritePage.routeId);
+                  },
             icon: Icon(
               Icons.view_list_rounded,
               color: Colors.deepPurple,
             ),
           ),
           IconButton(
-            onPressed: () async {
-              await onRefresh();
-            },
+            onPressed: _errorMsg.isNotEmpty
+                ? null
+                : () async {
+                    await onRefresh(context: context);
+                  },
             icon: Icon(
               Icons.refresh,
               color: Colors.deepPurple,
@@ -159,113 +215,117 @@ class _HomePageState extends State<HomePage> {
       body: SafeArea(
         child: _showLoading
             ? Center(child: CircularProgressIndicator())
-            : RefreshIndicator(
-                onRefresh: () async => onRefresh(onRefreshCall: true),
-                child: Container(
-                  padding: EdgeInsets.all(16.0),
-                  height: MediaQuery.of(context).size.height,
-                  child: _article.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                'No article yet.',
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.deepPurple,
+            : (_errorMsg.isNotEmpty && _errorMsg.contains('Connection refused'))
+                ? _handleServerIssue
+                : RefreshIndicator(
+                    onRefresh: () async => onRefresh(onRefreshCall: true, context: context),
+                    child: Container(
+                      padding: EdgeInsets.all(16.0),
+                      height: MediaQuery.of(context).size.height,
+                      child: _article.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'No article yet.',
                                   ),
-                                  onPressed: () {
-                                    Navigator.of(context).pushNamed(AddArticlePage.routeId);
-                                  },
-                                  child: Text(
-                                    'Create',
-                                    style: TextStyle(
-                                      color: Colors.white,
+                                  Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.deepPurple,
+                                      ),
+                                      onPressed: () {
+                                        Navigator.of(context).pushNamed(AddArticlePage.routeId);
+                                      },
+                                      child: Text(
+                                        'Create',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                        ),
+                                      ),
                                     ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : Column(
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('All Articles'),
+
+                                    // view all
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.of(context).pushNamed(ArticleListPage.routeId);
+                                      },
+                                      child: Text('View All'),
+                                    )
+                                  ],
+                                ),
+                                Expanded(
+                                  child: ListView.separated(
+                                    padding: EdgeInsets.zero,
+                                    itemCount: _article.length,
+                                    itemBuilder: (BuildContext context, int index) {
+                                      int articleIndex = _articleProvider.listFavoriteArticleIds.indexOf(_article[index].id.toString());
+
+                                      return ListTile(
+                                        onTap: () {
+                                          Navigator.of(context).pushNamed(DetailArticlePage.routeId, arguments: _article[index].id);
+                                        },
+                                        contentPadding: EdgeInsets.zero,
+                                        title: Text(_article[index].title),
+                                        subtitle: Text(_article[index].description),
+                                        trailing: Row(
+                                          // required to add mainAxisSize property to min (default max)
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            IconButton(
+                                              onPressed: () async => await onToggleFavorite(_article[index]),
+                                              icon: Icon(
+                                                articleIndex > -1 ? Icons.favorite_outlined : Icons.favorite_outline,
+                                                color: Colors.deepPurple,
+                                              ),
+                                            ),
+                                            IconButton(
+                                              onPressed: () async => await onEdit(_article[index], context),
+                                              icon: Icon(
+                                                Icons.edit,
+                                                color: Colors.deepPurple,
+                                              ),
+                                            ),
+                                            IconButton(
+                                              onPressed: () async => await onDelete(_article[index].id, context),
+                                              icon: Icon(
+                                                Icons.delete_rounded,
+                                                color: Colors.deepPurple,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                    separatorBuilder: (BuildContext context, int index) => Divider(),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text('All Articles'),
-
-                                // view all
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.of(context).pushNamed(ArticleListPage.routeId);
-                                  },
-                                  child: Text('View All'),
-                                )
                               ],
                             ),
-                            Expanded(
-                              child: ListView.separated(
-                                padding: EdgeInsets.zero,
-                                itemCount: _article.length,
-                                itemBuilder: (BuildContext context, int index) {
-                                  int articleIndex = _articleProvider.listFavoriteArticleIds.indexOf(_article[index].id.toString());
-
-                                  return ListTile(
-                                    onTap: () {
-                                      Navigator.of(context).pushNamed(DetailArticlePage.routeId, arguments: _article[index].id);
-                                    },
-                                    contentPadding: EdgeInsets.zero,
-                                    title: Text(_article[index].title),
-                                    subtitle: Text(_article[index].description),
-                                    trailing: Row(
-                                      // required to add mainAxisSize property to min (default max)
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        IconButton(
-                                          onPressed: () async => await onToggleFavorite(_article[index]),
-                                          icon: Icon(
-                                            articleIndex > -1 ? Icons.favorite_outlined : Icons.favorite_outline,
-                                            color: Colors.deepPurple,
-                                          ),
-                                        ),
-                                        IconButton(
-                                          onPressed: () async => await onEdit(_article[index]),
-                                          icon: Icon(
-                                            Icons.edit,
-                                            color: Colors.deepPurple,
-                                          ),
-                                        ),
-                                        IconButton(
-                                          onPressed: () async => await onDelete(_article[index].id),
-                                          icon: Icon(
-                                            Icons.delete_rounded,
-                                            color: Colors.deepPurple,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                                separatorBuilder: (BuildContext context, int index) => Divider(),
-                              ),
-                            ),
-                          ],
-                        ),
-                ),
-              ),
+                    ),
+                  ),
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.deepPurple,
-        onPressed: () => Navigator.of(context).pushNamed(AddArticlePage.routeId).then((value) async {
-          if (value == true) {
-            await onRefresh();
-          }
-        }),
+        onPressed: _errorMsg.isNotEmpty
+            ? null
+            : () => Navigator.of(context).pushNamed(AddArticlePage.routeId).then((value) async {
+                  if (value == true) {
+                    await onRefresh(context: context);
+                  }
+                }),
         child: Icon(
           Icons.add,
           color: Colors.white,

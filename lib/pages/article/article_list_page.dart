@@ -108,20 +108,11 @@ class _ArticleListPageState extends State<ArticleListPage> {
 
   Future<void> onDelete(int articleId) async {
     // show alert dialog delete article
-    await showDialog(
-        context: context,
-        builder: (context) {
-          return DeleteArticleAlertDialog(
-              articleId: articleId,
-              callback: (value) async {
-                if (value != null) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('There was an error:: [$value]')));
-                } else {
-                  // call refresh function again
-                  await onRefresh();
-                }
-              });
-        });
+    // await showDialog(
+    //     context: context,
+    //     builder: (context) {
+    //       return DeleteArticleAlertDialog();
+    //     });
   }
 
   Future<void> onToggleFavorite(Article article) async {
