@@ -107,12 +107,21 @@ class _ArticleListPageState extends State<ArticleListPage> {
   }
 
   Future<void> onDelete(int articleId) async {
+    ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+
     // show alert dialog delete article
-    // await showDialog(
-    //     context: context,
-    //     builder: (context) {
-    //       return DeleteArticleAlertDialog();
-    //     });
+    final String? result = await showDialog(
+        context: context,
+        builder: (context) {
+          return DeleteArticleAlertDialog();
+        });
+
+    'result:: $result'.log();
+    if (result == 'Yes') {
+      await _articleProvider.onDeleteArticle(articleId);
+      messenger.showSnackBar(SnackBar(content: Text('delete article successfully...')));
+      await onRefresh();
+    }
   }
 
   Future<void> onToggleFavorite(Article article) async {

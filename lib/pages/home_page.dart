@@ -85,7 +85,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> onRefresh({bool onRefreshCall = false, required BuildContext context}) async {
+  Future<void> onRefresh({bool onRefreshCall = false, BuildContext? context}) async {
     'onRefresh call...'.log();
 
     // close for awhile
@@ -120,6 +120,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> onDelete(int articleId, BuildContext context) async {
+    ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+
     // show alert dialog delete article
     final String? result = await showDialog(
         context: context,
@@ -130,18 +132,8 @@ class _HomePageState extends State<HomePage> {
     'result:: $result'.log();
     if (result == 'Yes') {
       await _articleProvider.onDeleteArticle(articleId);
-
-      'check mounted:: [${context.mounted}]'.log();
-      if (!context.mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('delete article successfully...'),
-        ),
-      );
-
-      // call refresh function again
-      await onRefresh(context: context);
+      messenger.showSnackBar(SnackBar(content: Text('delete article successfully...')));
+      await onRefresh();
     }
   }
 
