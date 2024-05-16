@@ -10,7 +10,9 @@ import '../models/login_req_model.dart';
 import '../models/login_res_model.dart';
 
 class AuthenticationService {
-  static const jsonHeader = {'Content-Type': 'application/json'};
+  static const jsonHeader = {
+    'Content-Type': 'application/json',
+  };
 
   Future<LoginResModel> signin(LoginReqModel reqModel) async {
     try {
