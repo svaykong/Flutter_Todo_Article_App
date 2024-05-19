@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:todo_app_provider/services/article_service.dart';
 
 import '../utils/logger.dart';
 

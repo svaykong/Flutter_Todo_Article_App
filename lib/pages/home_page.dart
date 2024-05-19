@@ -59,10 +59,19 @@ class _HomePageState extends State<HomePage> {
     if (_errorMsg.isNotEmpty) {
       'errorMsg::[$_errorMsg]'.log();
 
-      if (_errorMsg.contains('Token is invalid')) {
+      String displayErrMsg = _errorMsg;
+
+      if (_errorMsg.contains('_message:')) {
+        displayErrMsg = _errorMsg.substring(_errorMsg.indexOf('_message:') + 9, _errorMsg.indexOf('}')).trim();
+      }
+
+      if (_errorMsg.contains('Token is invalid') || _errorMsg.contains('UnauthorizedException')) {
+        if (_errorMsg.contains('Token is invalid')) {
+          displayErrMsg = 'Your session is end. Please login again.';
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Your session is end. Please login again.'),
+            content: Text(displayErrMsg),
           ),
         );
 
@@ -76,7 +85,11 @@ class _HomePageState extends State<HomePage> {
           ),
         );
       } else {
-        'An error occurred. $_errorMsg'.log();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(displayErrMsg),
+          ),
+        );
       }
     } else {
       setState(() {
@@ -252,7 +265,7 @@ class _HomePageState extends State<HomePage> {
                                     // view all
                                     TextButton(
                                       onPressed: () {
-                                        Navigator.of(context).pushNamed(ArticleListPage.routeId);
+                                        _errorMsg.isNotEmpty ? null : Navigator.of(context).pushNamed(ArticleListPage.routeId);
                                       },
                                       child: Text('View All'),
                                     )
@@ -267,7 +280,7 @@ class _HomePageState extends State<HomePage> {
 
                                       return ListTile(
                                         onTap: () {
-                                          Navigator.of(context).pushNamed(DetailArticlePage.routeId, arguments: _article[index].id);
+                                          _errorMsg.isNotEmpty ? null : Navigator.of(context).pushNamed(DetailArticlePage.routeId, arguments: _article[index].id);
                                         },
                                         contentPadding: EdgeInsets.zero,
                                         title: Text(_article[index].title),
@@ -277,21 +290,21 @@ class _HomePageState extends State<HomePage> {
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
                                             IconButton(
-                                              onPressed: () async => await onToggleFavorite(_article[index]),
+                                              onPressed: _errorMsg.isNotEmpty ? null : () async => await onToggleFavorite(_article[index]),
                                               icon: Icon(
                                                 articleIndex > -1 ? Icons.favorite_outlined : Icons.favorite_outline,
                                                 color: Colors.deepPurple,
                                               ),
                                             ),
                                             IconButton(
-                                              onPressed: () async => await onEdit(_article[index], context),
+                                              onPressed: _errorMsg.isNotEmpty ? null : () async => await onEdit(_article[index], context),
                                               icon: Icon(
                                                 Icons.edit,
                                                 color: Colors.deepPurple,
                                               ),
                                             ),
                                             IconButton(
-                                              onPressed: () async => await onDelete(_article[index].id, context),
+                                              onPressed: _errorMsg.isNotEmpty ? null : () async => await onDelete(_article[index].id, context),
                                               icon: Icon(
                                                 Icons.delete_rounded,
                                                 color: Colors.deepPurple,

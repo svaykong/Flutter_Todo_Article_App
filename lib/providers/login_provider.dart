@@ -8,7 +8,7 @@ import '../models/login_res_model.dart';
 import '../services/export_service.dart';
 
 class LoginProvider extends ChangeNotifier {
-  final authenticationService = AuthenticationService();
+  final authenticationService = AuthenticationService.instance;
 
   bool _isLoading = false;
   String _errorMsg = '';
@@ -29,9 +29,8 @@ class LoginProvider extends ChangeNotifier {
 
       final loginReqModel = LoginReqModel(email: email, password: password);
 
-      await Future.delayed(Duration(milliseconds: 5000), () {});
+      await Future.delayed(Duration(milliseconds: 1000), () {});
       _loginResModel = await authenticationService.signin(loginReqModel);
-      'login response model:: [$_loginResModel]'.log();
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('token', _loginResModel?.token ?? '');
@@ -39,9 +38,11 @@ class LoginProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     } catch (e) {
-      'onLogin exception::[$e]'.log();
+      'LoginProvider onLogin exception::[$e]'.log();
+
       _isLoading = false;
       _errorMsg = e.toString();
+
       notifyListeners();
     }
   }

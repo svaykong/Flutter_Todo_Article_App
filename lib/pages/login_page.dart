@@ -77,9 +77,16 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     if (loginProvider.errorMsg.isNotEmpty) {
-      var errMsg = loginProvider.errorMsg;
+      var errMsg = loginProvider.errorMsg.toLowerCase();
       'errMsg::[$errMsg]'.log();
-      if (errMsg.toLowerCase().contains('invalid credentials')) {
+
+      String displayErrMsg = errMsg;
+
+      if (errMsg.contains('_message:')) {
+        displayErrMsg = errMsg.substring(errMsg.indexOf('_message:') + 9, errMsg.indexOf('}')).trim();
+      }
+
+      if (errMsg.contains('invalid credentials') || errMsg.contains('check your credentials')) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Invalid email or password. Please check again.'),
@@ -88,7 +95,7 @@ class _LoginPageState extends State<LoginPage> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(errMsg),
+            content: Text(displayErrMsg),
           ),
         );
       }

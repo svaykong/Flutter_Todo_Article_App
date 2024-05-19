@@ -1,34 +1,26 @@
-import 'dart:convert';
-import 'dart:io';
+import 'package:flutter/foundation.dart' show immutable;
 
-import 'package:http/http.dart' as http;
-
+import '../data/network/network_api_service.dart';
 import '../utils/logger.dart';
-import '../utils/app_exception.dart';
-import '../constants/constants.dart';
 import '../models/login_req_model.dart';
 import '../models/login_res_model.dart';
 
+final NetworkApiService _networkApiService = NetworkApiService.getInstance;
+
+@immutable
 class AuthenticationService {
-  static const jsonHeader = {
-    'Content-Type': 'application/json',
-  };
+  const AuthenticationService._();
+
+  static AuthenticationService get instance => const AuthenticationService._();
 
   Future<LoginResModel> signin(LoginReqModel reqModel) async {
     try {
-      final url = Uri.parse('$baseUrl/signin');
-      final response = await http.post(url, headers: jsonHeader, body: json.encode(reqModel.toJson()));
-      if (response.statusCode == 200) {
-        return LoginResModel.fromJson(json.decode(response.body));
-      } else {
-        throw 'Invalid credentials';
-      }
-    } on SocketException catch (e) {
-      // handle no internet connection
-      throw NoInternetException('No internet connected. Please check your internet again.');
+      final resultJson = await _networkApiService.postRequest(url: '/signin', postData: reqModel.toJson());
+
+      return LoginResModel.fromJson(resultJson);
     } catch (e) {
-      'sign-in exception::${e.toString()}'.log();
-      throw 'Something went wrong::[$e]';
+      'AuthenticationService signin exception::${e.toString()}'.log();
+      throw e.toString();
     }
   }
 }

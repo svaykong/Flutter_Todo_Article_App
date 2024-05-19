@@ -7,7 +7,7 @@ import '../services/export_service.dart';
 import '../models/article_model.dart';
 
 class ArticleProvider extends ChangeNotifier {
-  final articleService = ArticleService();
+  final _articleService = ArticleService.instance;
 
   bool _isLoading = false;
   String _errorMsg = '';
@@ -34,7 +34,7 @@ class ArticleProvider extends ChangeNotifier {
       notifyListeners();
 
       await Future.delayed(Duration(milliseconds: 1000), () {});
-      _listArticles = await articleService.getAllArticles();
+      _listArticles = await _articleService.getAllArticles();
 
       _isLoading = false;
       notifyListeners();
@@ -85,7 +85,7 @@ class ArticleProvider extends ChangeNotifier {
       notifyListeners();
 
       await Future.delayed(Duration(milliseconds: 1000), () {});
-      await articleService.deleteArticle(articleId);
+      await _articleService.deleteArticle(articleId);
 
       _isLoading = false;
       notifyListeners();
@@ -104,7 +104,7 @@ class ArticleProvider extends ChangeNotifier {
       notifyListeners();
 
       await Future.delayed(Duration(milliseconds: 1000), () {});
-      await articleService.createArticle(postData);
+      await _articleService.createArticle(postData);
 
       _isLoading = false;
       notifyListeners();
@@ -123,7 +123,7 @@ class ArticleProvider extends ChangeNotifier {
       notifyListeners();
 
       await Future.delayed(Duration(milliseconds: 1000), () {});
-      await articleService.updateArticle(articleId, postData);
+      await _articleService.updateArticle(articleId, postData);
 
       _isLoading = false;
       notifyListeners();
@@ -140,7 +140,7 @@ class ArticleProvider extends ChangeNotifier {
 
     for (var i = 0; i < _listFavoriteArticleIds.length; i++) {
       for (var j = 0; j < _listArticles.length; j++) {
-        if (_listArticles[j].id == _listFavoriteArticleIds[i]) {
+        if (_listArticles[j].id.toString() == _listFavoriteArticleIds[i]) {
           _filters = [
             ..._filters,
             _listArticles[j],
@@ -172,7 +172,8 @@ class ArticleProvider extends ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      throw '[save list favorite articleIds] Something went wrong: $e';
+      '[save list favorite articleIds] Something went wrong: $e'.log();
+      throw e.toString();
     }
   }
 
@@ -185,7 +186,8 @@ class ArticleProvider extends ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      throw '[remove list favorite articleIds] Something went wrong: $e';
+      '[remove list favorite articleIds] Something went wrong: $e'.log();
+      throw e.toString();
     }
   }
 
@@ -200,7 +202,8 @@ class ArticleProvider extends ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      throw '[read list favorite articleIds] Something went wrong: $e';
+      '[read list favorite articleIds] Something went wrong: $e'.log();
+      throw e.toString();
     }
   }
 }
