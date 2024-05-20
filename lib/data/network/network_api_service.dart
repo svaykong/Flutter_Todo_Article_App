@@ -107,7 +107,9 @@ class NetworkApiService implements BaseNetworkApiService {
       }
       return response.data;
     } on DioException catch (e) {
+      _log('${e.message}');
       _log('response status code::[${e.response?.statusCode}');
+      _log('response status statusMessage::[${e.response?.statusMessage}');
 
       _commonErrorsCheck(e.response?.statusCode);
 
